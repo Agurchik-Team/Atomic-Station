@@ -1829,7 +1829,7 @@ MonoBehaviour:
   pressureText: {fileID: 0}
   currentPressure: 0
   maxPressure: 100
-  pressureIncreaseRate: 5
+  pressureIncreaseRate: 4
   resetButtons:
   - {fileID: 1341138281}
   - {fileID: 915030207}
@@ -1842,26 +1842,29 @@ MonoBehaviour:
   - {fileID: 597231496}
   buttonTimers: []
   isButtonActive: 
-  buttonActiveTime: 3
-  pressureDecreasePerButton: 2
+  buttonActiveTimeMin: 2
+  buttonActiveTimeMax: 5
+  pressureDecreasePerButton: 0.5
   targetSliders:
   - {fileID: 544439096}
   - {fileID: 1684555685}
   - {fileID: 1219234870}
   targetValues: []
-  targetChangeInterval: 3
+  targetChangeInterval: 8
   playerSliders:
   - {fileID: 779534996}
   - {fileID: 1389174625}
   - {fileID: 1491377254}
-  playerSliderDecrease: []
+  sliderTolerance: 10
+  sliderPressureDecrease: 4
   valueButtons:
   - {fileID: 1004147363}
   - {fileID: 322760583}
   buttonValues: []
   valueIncreasePerClick: 10
+  valueDecreasePerSecond: 3
   maxButtonValue: 100
-  pressureDecreaseFromValue: 0.5
+  pressureDecreasePerValuePoint: 0.05
   difficultyIncreaseInterval: 10
 --- !u!4 &698351612
 Transform:
@@ -1989,7 +1992,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 188, y: -43}
+  m_AnchoredPosition: {x: 188, y: 25.199982}
   m_SizeDelta: {x: 592.03, y: 63.94}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &779534996
@@ -3860,7 +3863,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 188, y: -106.94}
+  m_AnchoredPosition: {x: 188, y: -38.740025}
   m_SizeDelta: {x: 592.03, y: 63.94}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1389174625
@@ -4257,7 +4260,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 188, y: 20.940002}
+  m_AnchoredPosition: {x: 188, y: -102.68003}
   m_SizeDelta: {x: 592.03, y: 63.94}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1491377254
