@@ -9,8 +9,18 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
-        // Показываем рекорд при загрузке главного меню
-        ShowBestTime();
+        if (bestTimeText != null)
+        {
+            if (PlayerPrefs.HasKey("BestTime"))
+            {
+                float bestTime = PlayerPrefs.GetFloat("BestTime");
+                bestTimeText.text = FormatTime(bestTime);
+            }
+            else
+            {
+                bestTimeText.text = "00:00:00";
+            }
+        }
     }
 
     // Запуск игры
@@ -29,23 +39,6 @@ public class GameManager : MonoBehaviour
 #else
         Application.Quit();
 #endif
-    }
-
-    // Отображение рекорда
-    void ShowBestTime()
-    {
-        if (bestTimeText != null)
-        {
-            if (PlayerPrefs.HasKey("BestTime"))
-            {
-                float bestTime = PlayerPrefs.GetFloat("BestTime");
-                bestTimeText.text = FormatTime(bestTime);
-            }
-            else
-            {
-                bestTimeText.text = "00:00:00";
-            }
-        }
     }
 
     // Форматирование времени

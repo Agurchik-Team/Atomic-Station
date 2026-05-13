@@ -84,18 +84,6 @@ public float StopTimer()
         return currentTime;
     }
     
-    // Получить лучший время (рекорд)
-    public float GetBestTime()
-    {
-        return bestTime;
-    }
-    
-    // Получить отформатированный рекорд
-    public string GetFormattedBestTime()
-    {
-        return GetFormattedTime(bestTime);
-    }
-    
     // Сохранение рекорда
     void SaveBestTime()
     {
@@ -117,13 +105,5 @@ public float StopTimer()
             bestTime = 0f;
             Debug.Log("Рекордов пока нет");
         }
-    }
-    
-    // Сброс рекорда (опционально)
-    public void ResetBestTime()
-    {
-        bestTime = 0f;
-        SaveBestTime();
-        Debug.Log("Рекорд сброшен");
     }
 }
