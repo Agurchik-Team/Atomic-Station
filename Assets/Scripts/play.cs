@@ -5,95 +5,70 @@ using System.Collections;
 
 public class PressureSystem : MonoBehaviour
 {
-    [Header("Таймер")]
-    public TimerSystem timerSystem;
-
-    [Header("Звуки")]
-    public AudioSource audioSource;          
-    public AudioClip highPressureAlarm;       
-    public float highPressureThreshold = 80f; 
-    private bool isAlarmPlaying = false;      
-
     [Header("UI элементы")]
-    public Slider pressureSlider;
-    public Text pressureText;
-
-    [Header("Game Over")]
-    public GameObject gameOverCanvas;
+    public Slider pressureSlider;      // Слайдер для отображения давления
+    public Text pressureText;          // Текст для отображения давления
 
     [Header("Настройки давления")]
-    public float currentPressure = 0f;
-    public float maxPressure = 100f;
-    public float pressureIncreaseRate = 10f;
+    public float currentPressure = 0f;        // Текущее давление
+    public float maxPressure = 100f;          // Максимальное давление (проигрыш)
+    public float pressureIncreaseRate = 10f;  // На сколько растёт давление в секунду
 
     [Header("Кнопки сброса (9 штук)")]
-    public Button[] resetButtons = new Button[0];
-    public float[] buttonTimers;
-    public bool[] isButtonActive;
-    public float buttonActiveTimeMin = 10f;
-    public float buttonActiveTimeMax = 15f;
-    public float pressureDecreasePerButton = 2f;
-
-    [Header("Текстуры для кнопок сброса")]
-    public Sprite buttonActiveSprite;
-    public Sprite buttonInactiveSprite;
+    public Button[] resetButtons = new Button[0];     // Массив кнопок сброса
+    public float[] buttonTimers;                      // Таймеры активности каждой кнопки
+    public bool[] isButtonActive;                     // Активна ли кнопка сейчас
+    public float buttonActiveTimeMin = 10f;           // Минимальное время активности кнопки
+    public float buttonActiveTimeMax = 15f;           // Максимальное время активности кнопки
+    public float pressureDecreasePerButton = 2f;      // Сила снижения давления от одной активной кнопки
 
     [Header("Нередактируемые ползунки (3 штуки)")]
-    public Slider[] targetSliders = new Slider[0];
-    public float[] targetValues;
-    public float targetChangeInterval = 3f;
+    public Slider[] targetSliders = new Slider[0];    // Ползунки-цели (игрок не может их трогать)
+    public float[] targetValues;                      // Текущие значения целей
+    public float targetChangeInterval = 3f;           // Как часто меняются цели
 
     [Header("Редактируемые ползунки (3 штуки)")]
-    public Slider[] playerSliders = new Slider[0];
-    private bool[] isDragging;
-    public float sliderTolerance = 10f;
-    public float sliderPressureDecrease = 2f;
+    public Slider[] playerSliders = new Slider[0];    // Ползунки игрока
+    private bool[] isDragging;                        // Флаг: тянет ли игрок ползунок
+    public float sliderTolerance = 10f;               // Допуск попадания (+- от цели)
+    public float sliderPressureDecrease = 2f;         // Сколько давления снижает точное попадание
 
     [Header("Кнопки со значениями (2 штуки)")]
-    public Button[] valueButtons = new Button[0];
-    public Slider[] valueDisplaySliders = new Slider[0];
-    public float[] buttonValues;
-    public float valueIncreasePerClick = 10f;
-    public float valueDecreasePerSecond = 5f;
-    public float maxButtonValue = 100f;
-    public float pressureDecreasePerValuePoint = 0.05f;
+    public Button[] valueButtons = new Button[0];     // Кнопки с накапливаемым значением
+    public float[] buttonValues;                      // Текущие значения кнопок
+    public float valueIncreasePerClick = 10f;         // На сколько растёт значение при клике
+    public float valueDecreasePerSecond = 5f;         // На сколько падает значение за секунду
+    public float maxButtonValue = 100f;               // Максимальное значение кнопки
+    public float pressureDecreasePerValuePoint = 0.05f; // Снижение давления за 1 единицу значения в секунду
 
     [Header("Настройки усложнения")]
-    public float difficultyIncreaseInterval = 10f;
-    private float difficultyTimer;
-    private float baseTargetChangeInterval;
-    private float baseButtonActiveTimeMin;
-    private float baseButtonActiveTimeMax;
+    public float difficultyIncreaseInterval = 10f;    // Как часто повышается сложность (сек)
+    private float difficultyTimer;                    // Таймер до следующего повышения
+    private float baseTargetChangeInterval;           // Базовый интервал смены целей
+    private float baseButtonActiveTimeMin;            // Базовый минимум времени кнопки
+    private float baseButtonActiveTimeMax;            // Базовый максимум времени кнопки
 
-    private bool gameOver = false;
+    private bool gameOver = false;                    // Флаг окончания игры
 
     void Start()
     {
-        if (gameOverCanvas != null)
-        {
-            gameOverCanvas.SetActive(false);
-        }
-
-        Time.timeScale = 1f;
-
-        if (timerSystem != null)
-        {
-            timerSystem.StartTimer();
-        }
-
+        // Проверка: все ли массивы заполнены в инспекторе
         if (resetButtons.Length == 0 || targetSliders.Length == 0 || playerSliders.Length == 0 || valueButtons.Length == 0)
         {
             Debug.LogError("ОШИБКА: Заполните все массивы в инспекторе Unity!");
             return;
         }
 
+        // Сохраняем базовые значения для усложнения
         baseTargetChangeInterval = targetChangeInterval;
         baseButtonActiveTimeMin = buttonActiveTimeMin;
         baseButtonActiveTimeMax = buttonActiveTimeMax;
 
+        // Начальное давление
         currentPressure = 0f;
         UpdatePressureUI();
 
+        // ===== ИНИЦИАЛИЗАЦИЯ КНОПОК СБРОСА =====
         buttonTimers = new float[resetButtons.Length];
         isButtonActive = new bool[resetButtons.Length];
 
@@ -108,22 +83,18 @@ public class PressureSystem : MonoBehaviour
             isButtonActive[i] = false;
         }
 
-        // Устанавливаем неактивную текстуру для всех кнопок при старте
-        for (int i = 0; i < resetButtons.Length; i++)
-        {
-            ChangeButtonSprite(i, false);
-        }
-
+        // ===== ИНИЦИАЛИЗАЦИЯ ЦЕЛЕВЫХ ПОЛЗУНКОВ =====
         targetValues = new float[targetSliders.Length];
         for (int i = 0; i < targetSliders.Length; i++)
         {
             if (targetSliders[i] != null)
             {
-                targetSliders[i].interactable = false;
+                targetSliders[i].interactable = false; // Запрещаем игроку их трогать
                 ChangeTargetValue(i);
             }
         }
 
+        // ===== ИНИЦИАЛИЗАЦИЯ ПОЛЗУНКОВ ИГРОКА =====
         isDragging = new bool[playerSliders.Length];
 
         for (int i = 0; i < playerSliders.Length; i++)
@@ -131,17 +102,20 @@ public class PressureSystem : MonoBehaviour
             int index = i;
             if (playerSliders[i] != null)
             {
+                // Добавляем EventTrigger для отслеживания перетаскивания
                 EventTrigger trigger = playerSliders[i].gameObject.GetComponent<EventTrigger>();
                 if (trigger == null)
                     trigger = playerSliders[i].gameObject.AddComponent<EventTrigger>();
 
                 trigger.triggers.Clear();
 
+                // Событие: начало перетаскивания
                 EventTrigger.Entry beginDragEntry = new EventTrigger.Entry();
                 beginDragEntry.eventID = EventTriggerType.BeginDrag;
                 beginDragEntry.callback.AddListener((data) => { OnSliderBeginDrag(index); });
                 trigger.triggers.Add(beginDragEntry);
 
+                // Событие: конец перетаскивания
                 EventTrigger.Entry endDragEntry = new EventTrigger.Entry();
                 endDragEntry.eventID = EventTriggerType.EndDrag;
                 endDragEntry.callback.AddListener((data) => { OnSliderEndDrag(index); });
@@ -150,19 +124,8 @@ public class PressureSystem : MonoBehaviour
             isDragging[i] = false;
         }
 
+        // ===== ИНИЦИАЛИЗАЦИЯ КНОПОК СО ЗНАЧЕНИЯМИ =====
         buttonValues = new float[valueButtons.Length];
-
-        for (int i = 0; i < valueDisplaySliders.Length; i++)
-        {
-            if (valueDisplaySliders[i] != null)
-            {
-                valueDisplaySliders[i].interactable = false;
-                valueDisplaySliders[i].minValue = 0f;
-                valueDisplaySliders[i].maxValue = maxButtonValue;
-                valueDisplaySliders[i].value = 0f;
-            }
-        }
-
         for (int i = 0; i < valueButtons.Length; i++)
         {
             int index = i;
@@ -171,69 +134,21 @@ public class PressureSystem : MonoBehaviour
             {
                 valueButtons[i].onClick.AddListener(() => OnValueButtonClick(index));
                 UpdateValueButtonText(index);
-                UpdateValueDisplaySlider(index);
             }
         }
 
-        StartCoroutine(PressureIncrease());
-        StartCoroutine(ChangeTargetsPeriodically());
-        StartCoroutine(ProcessButtonDecrease());
-        StartCoroutine(ProcessValueButtonsDecrease());
-        StartCoroutine(ProcessValueButtonsPressureEffect());
-        StartCoroutine(IncreaseDifficulty());
+        // ===== ЗАПУСК ВСЕХ КОРУТИН =====
+        StartCoroutine(PressureIncrease());                 // Постепенный рост давления
+        StartCoroutine(ChangeTargetsPeriodically());        // Периодическая смена целей
+        StartCoroutine(ProcessButtonDecrease());           // Обработка снижения давления от кнопок
+        StartCoroutine(ProcessValueButtonsDecrease());     // Самоуменьшение значений кнопок
+        StartCoroutine(ProcessValueButtonsPressureEffect()); // Снижение давления от значений кнопок
+        StartCoroutine(IncreaseDifficulty());               // Постепенное усложнение игры
 
         Debug.Log("Игра запущена!");
     }
 
-    // Проверка давления и воспроизведение звука
-    void CheckHighPressureSound()
-    {
-        if (audioSource == null || highPressureAlarm == null) return;
-
-        if (currentPressure >= highPressureThreshold && !gameOver)
-        {
-            if (!isAlarmPlaying)
-            {
-                // Включаем звук
-                audioSource.clip = highPressureAlarm;
-                audioSource.loop = true;
-                audioSource.Play();
-                isAlarmPlaying = true;
-                Debug.Log("Высокое давление! Включен сигнал тревоги");
-            }
-        }
-        else
-        {
-            if (isAlarmPlaying)
-            {
-                // Выключаем звук
-                audioSource.Stop();
-                audioSource.loop = false;
-                isAlarmPlaying = false;
-                Debug.Log("Давление нормализовалось. Сигнал выключен");
-            }
-        }
-    }
-
-    // ===== МЕТОД ДЛЯ СМЕНЫ ТЕКСТУРЫ КНОПКИ =====
-    void ChangeButtonSprite(int index, bool isActive)
-    {
-        if (resetButtons[index] == null) return;
-        Image buttonImage = resetButtons[index].GetComponent<Image>();
-        if (buttonImage == null) return;
-
-        if (isActive)
-        {
-            if (buttonActiveSprite != null)
-                buttonImage.sprite = buttonActiveSprite;
-        }
-        else
-        {
-            if (buttonInactiveSprite != null)
-                buttonImage.sprite = buttonInactiveSprite;
-        }
-    }
-
+    // Постепенный рост давления (вызывается каждую секунду)
     IEnumerator PressureIncrease()
     {
         while (!gameOver)
@@ -241,6 +156,7 @@ public class PressureSystem : MonoBehaviour
             yield return new WaitForSeconds(1f);
             currentPressure += pressureIncreaseRate;
 
+            // Проверка на проигрыш
             if (currentPressure >= maxPressure)
             {
                 currentPressure = maxPressure;
@@ -251,6 +167,7 @@ public class PressureSystem : MonoBehaviour
         }
     }
 
+    // Обновление UI давления (слайдер и текст)
     void UpdatePressureUI()
     {
         if (pressureSlider != null)
@@ -261,48 +178,58 @@ public class PressureSystem : MonoBehaviour
         {
             pressureText.text = $"Давление: {Mathf.Round(currentPressure)}/{maxPressure}";
         }
-
-        CheckHighPressureSound();
     }
 
+    // Нажатие на кнопку сброса
     void OnResetButtonClick(int index)
     {
         if (gameOver) return;
 
+        // Если кнопка не активна - активируем
         if (index < resetButtons.Length && !isButtonActive[index])
         {
             isButtonActive[index] = true;
 
+            // Случайное время активности от min до max
             float randomTime = Random.Range(buttonActiveTimeMin, buttonActiveTimeMax);
             buttonTimers[index] = randomTime;
 
-            ChangeButtonSprite(index, true);
-
+            // Меняем цвет кнопки на зелёный (активна)
+            if (resetButtons[index] != null)
+            {
+                resetButtons[index].image.color = Color.green;
+            }
             Debug.Log($"Кнопка {index} активирована на {randomTime:F1} сек");
         }
     }
 
+    // Обработка активных кнопок (снижение давления и отсчёт таймера)
     IEnumerator ProcessButtonDecrease()
     {
         while (!gameOver)
         {
-            yield return new WaitForSeconds(0.1f);
+            yield return new WaitForSeconds(0.1f); // Проверяем каждые 0.1 секунды
 
             for (int i = 0; i < resetButtons.Length; i++)
             {
                 if (isButtonActive[i])
                 {
+                    // Уменьшаем таймер активности
                     buttonTimers[i] -= 0.1f;
+
+                    // Если время вышло - отключаем кнопку
                     if (buttonTimers[i] <= 0f)
                     {
                         isButtonActive[i] = false;
-
-                        ChangeButtonSprite(i, false);
-
+                        if (resetButtons[i] != null)
+                        {
+                            resetButtons[i].image.color = Color.white;
+                        }
                         Debug.Log($"Кнопка {i} отключилась");
                     }
                     else
                     {
+                        // Пока активна - снижает давление
                         currentPressure -= pressureDecreasePerButton * 0.05f;
                         if (currentPressure < 0) currentPressure = 0;
                         UpdatePressureUI();
@@ -312,6 +239,7 @@ public class PressureSystem : MonoBehaviour
         }
     }
 
+    // Изменение значения целевого ползунка на случайное (0-100)
     void ChangeTargetValue(int index)
     {
         if (index < targetSliders.Length && targetSliders[index] != null)
@@ -321,6 +249,7 @@ public class PressureSystem : MonoBehaviour
         }
     }
 
+    // Периодическая смена целей (каждые targetChangeInterval секунд)
     IEnumerator ChangeTargetsPeriodically()
     {
         while (!gameOver)
@@ -333,6 +262,7 @@ public class PressureSystem : MonoBehaviour
         }
     }
 
+    // Начало перетаскивания ползунка игроком
     public void OnSliderBeginDrag(int index)
     {
         if (gameOver) return;
@@ -340,6 +270,7 @@ public class PressureSystem : MonoBehaviour
         Debug.Log($"Ползунок {index}: начал перетаскивание");
     }
 
+    // Конец перетаскивания (игрок отпустил ползунок)
     public void OnSliderEndDrag(int index)
     {
         if (gameOver) return;
@@ -347,8 +278,10 @@ public class PressureSystem : MonoBehaviour
         isDragging[index] = false;
         float currentValue = playerSliders[index].value;
 
+        // Проверка: попал ли игрок в цель с учётом допуска
         if (index < targetValues.Length && Mathf.Abs(currentValue - targetValues[index]) <= sliderTolerance)
         {
+            // Попал - снижаем давление
             currentPressure -= sliderPressureDecrease;
             if (currentPressure < 0) currentPressure = 0;
             UpdatePressureUI();
@@ -360,6 +293,7 @@ public class PressureSystem : MonoBehaviour
         }
     }
 
+    // Самоуменьшение значений кнопок со временем (каждую секунду)
     IEnumerator ProcessValueButtonsDecrease()
     {
         while (!gameOver)
@@ -373,12 +307,12 @@ public class PressureSystem : MonoBehaviour
                     buttonValues[i] -= valueDecreasePerSecond;
                     if (buttonValues[i] < 0f) buttonValues[i] = 0f;
                     UpdateValueButtonText(i);
-                    UpdateValueDisplaySlider(i);
                 }
             }
         }
     }
 
+    // Постепенное снижение давления от значений кнопок (каждые 0.2 секунды)
     IEnumerator ProcessValueButtonsPressureEffect()
     {
         while (!gameOver)
@@ -389,6 +323,7 @@ public class PressureSystem : MonoBehaviour
             {
                 if (buttonValues[i] > 0f)
                 {
+                    // Чем выше значение кнопки, тем сильнее снижается давление
                     float decrease = buttonValues[i] * pressureDecreasePerValuePoint * 0.2f;
                     currentPressure -= decrease;
                     if (currentPressure < 0) currentPressure = 0;
@@ -398,23 +333,25 @@ public class PressureSystem : MonoBehaviour
         }
     }
 
+    // Нажатие на кнопку со значением (только увеличивает значение, давление снижается автоматически)
     void OnValueButtonClick(int index)
     {
         if (gameOver) return;
 
         if (index < buttonValues.Length)
         {
+            // Увеличиваем значение кнопки
             buttonValues[index] += valueIncreasePerClick;
             if (buttonValues[index] > maxButtonValue)
                 buttonValues[index] = maxButtonValue;
 
             UpdateValueButtonText(index);
-            UpdateValueDisplaySlider(index);
 
             Debug.Log($"Кнопка {index}: значение увеличено до {buttonValues[index]}");
         }
     }
 
+    // Обновление текста на кнопке (отображает текущее значение)
     void UpdateValueButtonText(int index)
     {
         if (index < valueButtons.Length && valueButtons[index] != null)
@@ -427,14 +364,7 @@ public class PressureSystem : MonoBehaviour
         }
     }
 
-    void UpdateValueDisplaySlider(int index)
-    {
-        if (index < valueDisplaySliders.Length && valueDisplaySliders[index] != null)
-        {
-            valueDisplaySliders[index].value = buttonValues[index];
-        }
-    }
-
+    // Усложнение игры: цели меняются чаще, кнопки работают меньше
     IEnumerator IncreaseDifficulty()
     {
         difficultyTimer = difficultyIncreaseInterval;
@@ -449,9 +379,14 @@ public class PressureSystem : MonoBehaviour
             {
                 difficultyLevel++;
 
+                // Цели меняются чаще (интервал уменьшается)
                 targetChangeInterval = Mathf.Max(0.5f, baseTargetChangeInterval / difficultyLevel);
+
+                // Кнопки сброса работают чуть меньше
                 buttonActiveTimeMin = Mathf.Max(0.5f, baseButtonActiveTimeMin - (difficultyLevel - 1) * 0.05f);
                 buttonActiveTimeMax = Mathf.Max(1f, baseButtonActiveTimeMax - (difficultyLevel - 1) * 0.05f);
+
+                // Кнопки со значениями быстрее теряют заряд
                 valueDecreasePerSecond = Mathf.Min(30f, valueDecreasePerSecond + 1f);
 
                 difficultyTimer = difficultyIncreaseInterval;
@@ -460,27 +395,14 @@ public class PressureSystem : MonoBehaviour
         }
     }
 
+    // Конец игры (давление достигло 100)
     void GameOver()
     {
         gameOver = true;
         Debug.Log("ИГРА ОКОНЧЕНА! Давление 100%");
-
-        if (audioSource != null && isAlarmPlaying)
+        if (pressureText != null)
         {
-            audioSource.Stop();
-            isAlarmPlaying = false;
+            pressureText.text = "ИГРА ОКОНЧЕНА! Давление 100%";
         }
-
-        if (timerSystem != null)
-        {
-            timerSystem.StopTimer();
-        }
-
-        if (gameOverCanvas != null)
-        {
-            gameOverCanvas.SetActive(true);
-        }
-
-        Time.timeScale = 0f;
     }
 }
